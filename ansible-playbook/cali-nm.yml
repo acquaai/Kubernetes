@@ -1,0 +1,12 @@
+- name: configure NetworkManager
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: configure NetworkManager to Calico
+      blockinfile:
+        dest: /etc/NetworkManager/conf.d/calico.conf
+        block: |
+          [keyfile]
+          unmanaged-devices=interface-name:cali*;interface-name:tunl*
+        create: yes

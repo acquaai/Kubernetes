@@ -1,0 +1,131 @@
+---
+- name: General Configuration
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: set authorized key taken from file
+      become: no
+      authorized_key:
+        user: k8s
+        key: "{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
+        state: present      
+        manage_dir: yes
+
+    - name: disable UFW
+      ufw:
+        state: disabled
+
+    - name: add k8s user to the sudoers
+      copy:
+        content: 'k8s  ALL=(ALL)  NOPASSWD: ALL'
+        dest: /etc/sudoers.d/k8s
+
+    - name: update apt cache
+      apt:
+         update_cache=yes
+         force_apt_get=yes
+
+    - name: upgrade packages
+      apt: upgrade=dist
+
+    - name: install linux-image-generic
+      apt:
+        name: linux-image-generic
+
+    - name: check if a reboot is required
+      register: reboot_required_file
+      stat: path=/var/run/reboot-required get_md5=no
+
+    - name: restart machine
+      shell: sleep 2 && shutdown -r now "Ansible updates triggered"
+      async: 1
+      poll: 0
+      ignore_errors: true
+      when: reboot_required_file.stat.exists == true
+
+    - name: waiting for server to come back
+      become: no
+      wait_for:
+        port=22
+        host={{ inventory_hostname }}
+        search_regex=OpenSSH
+        delay=10
+      connection: local 
+
+    - name: edit the localhost entry with our own
+      blockinfile:
+        dest: /etc/hosts
+        block: |
+          172.31.16.11 cp-172-31-16-11
+          172.31.16.12 cp-172-31-16-12
+          172.31.16.13 cp-172-31-16-13
+          172.31.16.14 w-172-31-16-14
+          172.31.16.15 w-172-31-16-15
+          172.31.16.16 w-172-31-16-16
+        backup: yes  
+
+    - name: disable SWAP (1/2)
+      shell: |
+        swapoff -a
+     
+    - name: disable SWAP in fstab (2/2)
+      replace:
+        path: /etc/fstab
+        regexp: '^(.+?\sswap\s+sw\s+.*)$'
+        replace: '# \1'
+
+    - name: set timezone to Asia/Shanghai (1/9)
+      timezone:
+        name: Asia/Shanghai
+
+    - name: install ntp/ntpdate (2/9)
+      apt:
+        name: "{{ packages }}"
+        update_cache: yes
+      vars:
+        packages:
+        - ntp
+        - ntpdate
+
+    - name: empty ntp.conf file (3/9)
+      copy:
+        dest: /etc/ntp.conf
+        content: ''
+        force: yes
+        backup: yes
+
+    - name: edit the localhost entry with our own (4/9)
+      blockinfile:
+        dest: /etc/ntp.conf
+        block: |
+          restrict 127.0.0.1
+          server time.yubang168.cn
+          server ntp1.aliyun.com
+          restrict default kod nomodify notrap nopeer noquery
+          restrict -6 default kod nomodify notrap nopeer noquery
+          restrict -6 ::1
+          driftfile /var/lib/ntp/drift
+          keys /etc/ntp/keys
+
+    - name: stop ntp (5/9)
+      systemd:
+        state: stopped
+        name: ntp
+
+    - name: sync time initialy (6/9)
+      shell: ntpdate 10.0.88.118
+    
+    - name: start ntp (7/9)
+      systemd:
+        state: started
+        name: ntp
+
+    - name: enable ntp service start on boot (8/9)
+      systemd:
+        name: ntp
+        state: started
+        enabled: yes
+   
+    - name: sync hwclock (9/9)
+      shell: hwclock -w

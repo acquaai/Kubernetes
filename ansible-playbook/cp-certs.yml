@@ -1,0 +1,134 @@
+---
+- name: copy certificates
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Fetch the ca.crt file from control plane01 to ansible controller (1/2)
+      synchronize:
+        mode: pull
+        src: /etc/kubernetes/pki/ca.crt
+        dest: /etc/ansible/k8s/certs/
+        group: yes
+        owner: yes
+        perms: yes
+      tags:
+      - pull
+
+    - name: Fetch the ca.key file from control plane01 to ansible controller (2/2)
+      synchronize:
+        mode: pull
+        src: /etc/kubernetes/pki/ca.key
+        dest: /etc/ansible/k8s/certs/
+        group: yes
+        owner: yes
+        perms: yes
+      tags:
+      - pull        
+
+    - name: Fetch the sa.key file from control plane01 to ansible controller (1/2)
+      synchronize:
+        mode: pull
+        src: /etc/kubernetes/pki/sa.key
+        dest: /etc/ansible/k8s/certs/
+        group: yes
+        owner: yes
+        perms: yes
+      tags:
+      - pull       
+
+    - name: Fetch the sa.pub file from control plane01 to ansible controller (2/2)
+      synchronize:
+        mode: pull
+        src: /etc/kubernetes/pki/sa.pub
+        dest: /etc/ansible/k8s/certs/
+        group: yes
+        owner: yes
+        perms: yes
+      tags:
+      - pull        
+
+    - name: Fetch the front proxy files from control plane01 to ansible controller (1/2)
+      synchronize:
+        mode: pull
+        src: /etc/kubernetes/pki/front-proxy-ca.crt
+        dest: /etc/ansible/k8s/certs/
+        group: yes
+        owner: yes
+        perms: yes
+      tags:
+      - pull
+
+    - name: Fetch the front proxy files from control plane01 to ansible controller (2/2)
+      synchronize:
+        mode: pull
+        src: /etc/kubernetes/pki/front-proxy-ca.key
+        dest: /etc/ansible/k8s/certs/
+        group: yes
+        owner: yes
+        perms: yes
+      tags:
+      - pull
+
+    - name: Fetch the etcd files from control plane01 to ansible controller (1/2)
+      synchronize:
+        mode: pull
+        src: /etc/kubernetes/pki/etcd/ca.crt
+        dest: /etc/ansible/k8s/certs/etcd/
+        group: yes
+        owner: yes
+        perms: yes
+      tags:
+      - pull
+
+    - name: Fetch the etcd files from control plane01 to ansible controller (2/2)
+      synchronize:
+        mode: pull
+        src: /etc/kubernetes/pki/etcd/ca.key
+        dest: /etc/ansible/k8s/certs/etcd/
+        group: yes
+        owner: yes
+        perms: yes
+      tags:
+      - pull
+
+    - name: Fetch the kubernetes file from control plane01 to ansible controller
+      synchronize:
+        mode: pull
+        src: /etc/kubernetes/admin.conf
+        dest: /etc/ansible/k8s/certs/
+        group: yes
+        owner: yes
+        perms: yes
+      tags:
+      - pull
+
+    - name: push the kubernetes file from ansible controller other control plane nodes
+      synchronize:
+        mode: push
+        src: /etc/ansible/k8s/certs/admin.conf
+        dest: /etc/kubernetes/
+        group: yes
+        owner: yes
+        perms: yes
+      tags:
+      - push   
+
+    - name: push the rest files from ansible controller other control plane nodes
+      synchronize:
+        mode: push
+        src: /etc/ansible/k8s/certs/
+        dest: /etc/kubernetes/pki/
+        group: yes
+        owner: yes
+        perms: yes
+        dirs: yes
+      tags:
+      - push
+
+    - name: delete admin.conf file
+      file:
+        path: /etc/kubernetes/pki/admin.conf
+        state: absent  
+      tags:
+      - push

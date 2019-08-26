@@ -1,0 +1,19 @@
+---
+- name: proxy
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: proxy for kubeadm
+      blockinfile:
+        dest: /home/k8s/.bashrc
+        block: |
+          export http_proxy='http://10.30.1.99:1080'
+          export https_proxy=$http_proxy
+          export no_proxy='127.0.0.1, localhost, 172.31.16.11'
+        backup: yes
+
+    - name: enable proxy
+      shell: source /home/k8s/.bashrc
+      args:
+        executable: /bin/bash

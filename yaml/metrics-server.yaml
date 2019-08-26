@@ -1,0 +1,13 @@
+args:
+- --logtostderr
+- --kubelet-insecure-tls
+- --kubelet-preferred-address-types=InternalIP
+nodeSelector:
+    node-role.kubernetes.io/edge: ''
+tolerations:
+    - key: node-role.kubernetes.io/master
+      operator: Exists
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/master
+      operator: Exists
+      effect: PreferNoSchedule

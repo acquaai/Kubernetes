@@ -1,0 +1,25 @@
+image:
+  repository: k8s.gcr.io/kubernetes-dashboard-amd64
+  tag: v1.10.1
+ingress:
+  enabled: true
+  hosts: 
+    - k8s.acqua.com
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  tls:
+    - secretName: acqua-com-tls-secret
+      hosts:
+      - k8s.acqua.com
+nodeSelector:
+    node-role.kubernetes.io/edge: ''
+tolerations:
+    - key: node-role.kubernetes.io/master
+      operator: Exists
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/master
+      operator: Exists
+      effect: PreferNoSchedule
+rbac:
+  clusterAdminRole: true

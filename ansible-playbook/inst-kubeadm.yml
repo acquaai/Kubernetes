@@ -1,0 +1,33 @@
+---
+- name: installing kubelet kubeadm kubectl
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: add aliyun apt-key
+      apt_key:
+        url: https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg
+        state: present
+
+    - name: add k8s repository
+      apt_repository:
+        repo: deb https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial main
+        state: present
+        filename: k8s-repo
+        update_cache: yes
+
+    - name: install kubelet kubeadm kubectl
+      apt:
+        name: "{{ items }}"
+        state: present
+      vars:
+        items:
+        - kubelet
+        - kubeadm
+        - kubectl
+     
+    - name: check kubelet is running
+      systemd:
+        name: kubelet
+        state: started
+        enabled: yes

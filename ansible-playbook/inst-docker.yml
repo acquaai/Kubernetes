@@ -1,0 +1,138 @@
+---
+- name: installing docker
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: equivalent of apt-get update
+      apt:
+        update_cache=yes
+      tags:
+      - noproxy
+        
+    - name: install packages
+      apt:
+        name: "{{ packages }}"
+        update_cache: yes
+        state: present
+      vars:
+        packages:
+        - ipset
+        - ipvsadm
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - gnupg-agent
+        - software-properties-common
+      tags:
+      - noproxy
+    
+    - name: install GPG key for docker with aliyum mirror
+      apt_key: 
+        url: http://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg
+        state: present
+      tags:
+      - noproxy
+
+    - name: add docker repository with aliyum mirror
+      apt_repository:
+        repo: deb [arch=amd64] http://mirrors.aliyun.com/docker-ce/linux/ubuntu bionic stable
+        state: present
+        filename: docker-repo
+        update_cache: yes
+      tags:
+      - noproxy
+
+    - name: install docker-ce. list the versions by 'apt-cache madison docker-ce'
+      apt:
+        name: "{{ items }}"
+        update_cache: yes
+        state: present
+      vars:
+        items:
+        - docker-ce=5:18.09.8~3-0~ubuntu-bionic
+        - docker-ce-cli=5:18.09.8~3-0~ubuntu-bionic
+        - containerd.io
+      tags:
+      - noproxy
+
+    - name: manage docker as a non-root user
+      user:
+        name: k8s
+        groups: docker
+        append: yes 
+      tags:
+      - noproxy
+
+    - name: change docker cgroup driver from cgroupfs to systemd
+      copy:
+        dest: /etc/docker/daemon.json
+        content: |
+          {
+            "exec-opts": ["native.cgroupdriver=systemd"],
+            "log-driver": "json-file",
+            "log-opts": {
+            "max-size": "100m"
+             },
+            "storage-driver": "overlay2",
+            "registry-mirrors": ["https://registry.cn-hangzhou.aliyuncs.com"]
+          }
+        force: yes
+      tags:
+      - noproxy
+
+    - name: create docker.service.d directory
+      file:
+        path: /etc/systemd/system/docker.service.d
+        state: directory
+      tags:
+      - noproxy
+
+    - name: proxy for docker
+      copy:
+        dest: /etc/systemd/system/docker.service.d/proxy.conf
+        content: |
+          [Service]
+          Environment="HTTP_PROXY=http://10.30.1.88:1080"
+          Environment="HTTPS_PROXY=http://10.30.1.88:1080"
+          Environment="NO_PROXY=localhost,127.0.0.1,172.31.18.12"
+        force: yes
+      tags:
+      - proxy
+
+    - name: recreate resolv.conf symlink
+      file:
+        src: /run/systemd/resolve/resolv.conf
+        dest: /etc/resolv.conf
+        owner: root
+        group: root
+        state: link
+        mode: '1777'
+        force: ye
+      tags:
+      - noproxy
+
+    - name: Configure Pod DNS
+      copy:
+        dest: /etc/resolv.conf
+        content: |
+          nameserver 10.0.77.78
+        force: yes
+      tags:
+      - noproxy
+
+    - name: restart docker
+      systemd:
+        state: restarted
+        daemon_reload: yes
+        name: docker
+      tags:
+      - noproxy
+
+    - name: check docker is running
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+      tags:
+      - noproxy

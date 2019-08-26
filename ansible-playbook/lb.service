@@ -1,0 +1,23 @@
+[Unit]
+Description=kubernetes apiserver docker wrapper
+Wants=docker.socket
+After=docker.service
+
+[Service]
+User=root
+PermissionsStartOnly=true
+ExecStart=/usr/bin/docker run -p 127.0.0.1:8443:6443 \
+                              -v /etc/nginx:/etc/nginx \
+                              --name lb \
+                              --network="host" \
+                              --restart=on-failure:3 \
+                              --memory=512M \
+                              nginx
+ExecStartPre=-/usr/bin/docker rm -f lb
+ExecStop=/usr/bin/docker stop lb
+Restart=always
+RestartSec=15s
+TimeoutStartSec=30s
+
+[Install]
+WantedBy=multi-user.target
