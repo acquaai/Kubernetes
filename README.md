@@ -4,7 +4,7 @@
 
 ### Stacked control plane and etcd nodes HA topology
 
-![Snip20190817_1](media/15650527433799/Snip20190817_1.png)
+![image](https://github.com/acquaai/Kubernetes/blob/master/img/k8s_arch.png)
 
 
 ### HA Planning
@@ -1472,7 +1472,7 @@ nginx-ingress-controller-598c7fd878-twfwk        1/1     Running   0          2m
 nginx-ingress-default-backend-7b8b45bd49-qsdcf   1/1     Running   0          2m34s   10.244.83.90   w-172-31-16-14   <none>           <none>
 ```
 
-Chrome: http://172.31.16.14
+Chrome: http://172.31.16.14, response: **default backend**
 
 
 ## Deploy dashboard with Helm
@@ -1534,7 +1534,7 @@ token:      eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2V
 
 https://k8s.acqua.com => 172.31.16.14
 
-![dashboard](media/15650527433799/dashboard.png)
+![image](https://github.com/acquaai/Kubernetes/blob/master/img/dashboard.png)
 
 
 ## Deploy metrics-server with Helm
