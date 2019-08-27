@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql
+  namespace: sonar
+  labels:
+    app: mysql
+data:
+  master.cnf: |
+    # Apply this config only on the master.
+    [mysqld]
+    log-bin
+    skip-host-cache
+    skip-name-resolve
+  slave.cnf: |
+    # Apply this config only on slaves.
+    [mysqld]
+    skip-host-cache
+    skip-name-resolve

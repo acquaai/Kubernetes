@@ -1,0 +1,81 @@
+pd:
+  name: pd
+  image: 10.0.77.16/library/pingcap/pd:v2.0.0-rc.3
+  imagePullPolicy: IfNotPresent
+
+  replicaCount: 3
+
+  service:
+    type: ClusterIP
+
+    ## Specify the nodePort value for the LoadBalancer and NodePort service types.
+    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport
+    ##
+    # nodePort:
+
+    ## Provide any additonal annotations which may be required. This can be used to
+    ## set the LoadBalancer service type to internal only.
+    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#internal-load-balancer
+    ##
+    # annotations:
+
+    PeerPort: 2380
+    ClientPort: 2379
+
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 120m
+
+tidb:
+  name: db
+  image: 10.0.77.16/library/pingcap/tidb:v2.0.0-rc.3
+  imagePullPolicy: IfNotPresent
+
+  replicaCount: 1
+
+  service:
+    type: NodePort 
+    mysql: 4000
+    status: 10080
+
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
+
+
+tikv:
+  name: kv
+  image: 10.0.77.16/library/pingcap/tikv:v2.0.0-rc.3
+  imagePullPolicy: IfNotPresent
+
+  replicaCount: 3
+
+  service:
+    type: ClusterIP
+    ClientPort: 20160
+  
+  persistence:
+    enabled: true
+    storageClass: ceph-tidb
+    accessMode: ReadWriteOnce
+    size: 6Gi
+
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
+
+vision:
+  name: vision
+  image: 10.0.77.16/library/pingcap/tidb-vision:latest
+  imagePullPolicy: IfNotPresent
+
+  replicaCount: 1
+
+  pdendpoint: pingcap-tidb-kv-0:2379  #!!!Manually specified pingcap-tidb-kv-0's IP, only test.
+
+  service:
+    type: NodePort
+    port: 8010

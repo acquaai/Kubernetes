@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-configmap
+  namespace: sonar
+  labels:
+    app: mysql
+data:
+  mariadb.cnf: |
+    [client]
+    default-character-set = utf8
+    [mysqld]
+    character-set-server = utf8
+    collation-server = utf8_general_ci
+    innodb_log_file_size = 64M
+  galera.cnf: |
+    [galera]
+    user = mysql
+    bind-address = 0.0.0.0
+    innodb_flush_log_at_trx_commit = 0
+    sync_binlog = 0
+    expire_logs_days = 7
+    default_storage_engine = InnoDB
+    binlog_format = ROW
+    innodb_autoinc_lock_mode = 2
+    query_cache_size = 0
+    query_cache_type = 0
+    wsrep_on = ON
+    wsrep_provider = /usr/lib/galera/libgalera_smm.so
+    wsrep_sst_method = rsync
+    wsrep_cluster_address = gcomm://
+    wsrep_cluster_name = galera
+    wsrep_node_address = 127.0.0.1

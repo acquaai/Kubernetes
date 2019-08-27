@@ -1,0 +1,115 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: mysql-claim
+  labels:
+    group: artifactory-k8s
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: art-storage
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secrets
+  labels:
+    group: artifactory-k8s
+data:
+  mysql-database: YXJ0ZGI=
+  mysql-user: YXJ0aWZhY3Rvcnk=
+  mysql-password: cGFzc3dvcmQ=
+  mysql-root-password: cGFzc3dvcmQ=
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: mysql-k8s-deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mysql-k8s
+        group: artifactory-k8s
+    spec:
+      containers:
+      - name: db-mysql-k8s
+        image: 10.0.77.16/library/mysql:5.6.35
+       #image: docker.bintray.io/mysql:5.6.35
+        env:
+        - name: MYSQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: mysql-database
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: mysql-user
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: mysql-password
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: mysql-root-password
+        ports:
+        - containerPort: 3306
+        volumeMounts:
+        - mountPath: "/var/lib/mysql"
+          name: db-volume
+        resources:
+          requests:
+            memory: "500Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - "mysqladmin ping -u root -p${MYSQL_ROOT_PASSWORD}"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - "mysqladmin ping -u root -p${MYSQL_ROOT_PASSWORD}"
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 1
+          successThreshold: 1
+          failureThreshold: 3
+      volumes:
+      - name: db-volume
+        persistentVolumeClaim:
+          claimName: mysql-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-k8s-service
+  labels:
+    app: mysql-k8s-service
+    group: artifactory-k8s
+spec:
+  ports:
+  - port: 3306
+    protocol: TCP
+  selector:
+    app: mysql-k8s

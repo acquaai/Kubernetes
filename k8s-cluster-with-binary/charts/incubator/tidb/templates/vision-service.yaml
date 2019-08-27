@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ template "vision.tidb.fullname" . }}"
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+  labels:
+    app: "{{ template "vision.tidb.fullname" . }}"
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+spec:
+  type: {{ .Values.vision.service.type }}
+  ports:
+  - port: {{ .Values.vision.service.port }}
+    protocol: TCP
+  selector:
+    component: "{{ template "vision.tidb.fullname" . }}"

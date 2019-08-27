@@ -1,0 +1,6 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: spark-cluster
+  labels:
+    name: spark-cluster

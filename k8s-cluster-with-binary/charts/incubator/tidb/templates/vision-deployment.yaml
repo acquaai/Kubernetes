@@ -1,0 +1,33 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: "{{ template "vision.tidb.fullname" . }}"
+  labels:
+    app: "{{ template "vision.tidb.fullname" . }}"
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+spec:
+  replicas: {{ .Values.vision.replicaCount }}
+
+  template:
+    metadata:
+      labels:
+        heritage: "{{ .Release.Service }}"
+        release: "{{ .Release.Name }}"
+        app: {{ template "tidb.fullname" . }}
+        component: "{{ template "vision.tidb.fullname" . }}"
+
+    spec:
+      containers:
+      - name: vision
+        image: "{{ .Values.vision.image }}"
+        imagePullPolicy: {{ .Values.vision.imagePullPolicy | quote }}
+        ports:
+          - containerPort: {{ .Values.vision.service.port }}
+
+        env:
+        - name: PD_ENDPOINT
+          value: "{{ .Values.vision.pdendpoint }}"
+        resources:
+{{ toYaml .Values.vision.resources | indent 10 }}

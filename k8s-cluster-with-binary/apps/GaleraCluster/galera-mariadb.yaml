@@ -1,0 +1,140 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+  name: mysql
+  namespace: sonar
+  labels:
+    app: mysql
+    tier: data
+spec:
+  ports:
+  - port: 3306
+    name: mysql
+  clusterIP: None
+  selector:
+    app: mysql
+---
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: mysql
+  namespace: sonar
+spec:
+  serviceName: "mysql"
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: mysql
+        tier: data
+      annotations:
+        pod.beta.kubernetes.io/init-containers: '[
+          {
+            "name": "galera-init",
+            "image": "10.0.77.16/library/k8s-galera-init:latest",
+            "args": ["-service=mysql"],
+            "env": [
+               {
+                 "name": "POD_NAMESPACE",
+                 "value": {
+                    "fieldRef": { "apiVersion": "v1", "fieldPath": "metadata.namespace" }
+                  }
+                },
+                {
+                  "name": "SAFE_TO_BOOTSTRAP",
+                  "value": "1"
+                },
+                {
+                  "name": "DEBUG",
+                  "value": "1"
+                }
+              ],
+              "volumeMounts": [
+                 {
+                   "name": "config",
+                   "mountPath": "/etc/mysql/conf.d"
+                 },
+                 {
+                   "name": "data"
+                   "mountPath": "/var/lib/mysql"
+                 }
+               ]
+             }
+           ]'
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: mysql
+        image: 10.0.77.16/library/mariadb:10.2
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3306
+          name: mysql
+        - containerPort: 4444
+          name: sst
+        - containerPort: 4567
+          name: replication
+        - containerPort: 4568
+          name: ist
+        env:
+        - name: MYSQL_ROOT_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: root-user
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: root-password
+        - name: MYSQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: mysql-database
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: mysql-user
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: mysql-password
+        - name: MYSQL_INITDB_SKIP_TZINFO
+          value: "yes"
+        livenessProbe:
+          exec:
+            command: ["sh", "-c", "mysql -u\"${MYSQL_ROOT_USER:-root}\" -p\"${MYSQL_ROOT_PASSWORD}\" -e 'show databases;'"]
+          initialDelaySeconds: 60
+          timeoutSeconds: 5
+        readinessProbe:
+          exec:
+            command: ["sh", "-c", "mysql -u\"${MYSQL_ROOT_USER:-root}\" -p\"${MYSQL_ROOT_PASSWORD}\" -e 'show databases;'"]
+          initialDelaySeconds: 20
+          timeoutSeconds: 5
+        volumeMounts:
+        - name: config
+          mountPath: /etc/mysql/conf.d
+        - name: data
+          mountPath: /var/lib/mysql
+          subPath: mysql
+      volumes:
+      - name: config
+        configMap:
+          name: mysql-configmap
+      imagePullSecrets:
+        - name: "registrykey"
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+      annotations:
+        volume.beta.kubernetes.io/storage-class: "ceph-mysql"
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 3Gi  

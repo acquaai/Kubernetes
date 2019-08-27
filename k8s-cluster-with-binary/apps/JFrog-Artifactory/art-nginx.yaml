@@ -1,0 +1,78 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: nginx-claim
+  labels:
+    group: artifactory-k8s
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: art-storage
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: nginx-k8s-deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nginx-k8s-deployment
+        group: artifactory-k8s
+    spec:
+      containers:
+      - name: nginx-k8s
+        image: 10.0.77.16/library/nginx-artifactory-pro:5.10.1
+       #image: docker.bintray.io/jfrog/nginx-artifactory-pro:5.10.1
+        env:
+        - name: ART_BASE_URL
+          value: "http://artifactory-pro:8081/artifactory"
+        - name: SSL
+          value: "true"
+        ports:
+        - containerPort: 80
+        - containerPort: 443
+        resources:
+          requests:
+            memory: "100Mi"
+            cpu: "100m"
+          limits:
+            memory: "200Mi"
+            cpu: "200m"
+        volumeMounts:
+        - mountPath: "/var/opt/jfrog/nginx"
+          name: nginx-volume
+        - mountPath: "/var/opt/jfrog/nginx/ssl"
+          name: ssl-secret-volume
+      volumes:
+      - name: nginx-volume
+        persistentVolumeClaim:
+          claimName: nginx-claim
+      - name: ssl-secret-volume
+        secret:
+          secretName: art-tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-k8s-service
+  labels:
+    app: nginx-k8s-service
+    group: artifactory-k8s
+spec:
+  type: NodePort   # <- LoadBalancer
+  ports:
+  - port: 80
+    name: port-1
+    protocol: TCP
+    targetPort: 80
+  - port: 443
+    name: port-2
+    protocol: TCP
+    targetPort: 443
+  selector:
+    app: nginx-k8s-deployment

@@ -1,0 +1,11 @@
+apiVersion: v1
+appVersion: "1.0"
+description: A TiDB chart for Kubernetes
+home: https://acquaai.github.io
+keywords:
+- newsql
+- tidb
+name: tidb
+sources:
+- https://github.com/acquaai/K8S/tree/master/charts/incubator/tidb
+version: v2.0.0

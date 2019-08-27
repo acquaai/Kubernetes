@@ -1,0 +1,95 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: artifactory-claim
+  labels:
+    group: artifactory-k8s
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: art-storage
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: artifactory-k8s-deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: artifactory-pro-k8s
+        group: artifactory-k8s
+    spec:
+      containers:
+      - name: artifactory-pro-k8s
+        image: 10.0.77.16/library/artifactory-pro-mysql:5.10.1
+       #image: docker.bintray.io/jfrog/artifactory-pro:5.10.1
+        env:
+        - name: DB_TYPE
+          value: mysql
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: mysql-user
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: mysql-password
+        - name: DB_HOST
+          value: mysql-k8s-service
+        # Make sure to keep the memory java args aligned with the resources definitions
+        - name: EXTRA_JAVA_OPTIONS
+          value: "-Xms1g -Xmx2g"
+        ports:
+        - containerPort: 8081
+        volumeMounts:
+        - mountPath: "/var/opt/jfrog/artifactory"
+          name: artifactory-pro-volume
+        # Make sure to keep the resources set with values matching EXTRA_JAVA_OPTIONS above
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1"
+        readinessProbe:
+          httpGet:
+            path: '/artifactory/webapp/#/login'
+            port: 8081
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          failureThreshold: 10
+        livenessProbe:
+          httpGet:
+            path: '/artifactory/webapp/#/login'
+            port: 8081
+          initialDelaySeconds: 180
+          periodSeconds: 10
+      volumes:
+      - name: artifactory-pro-volume
+        persistentVolumeClaim:
+          claimName: artifactory-claim
+      imagePullSecrets:
+      - name: registrykey
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: artifactory
+  labels:
+    app: artifactory
+    group: artifactory-k8s
+spec:
+  type: NodePort
+  ports:
+  - port: 8081
+    protocol: TCP
+  selector:
+    app: artifactory-pro-k8s

@@ -1,0 +1,21 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+   name: ceph-tidb
+   namespace: default
+   annotations:
+     storageclass.kubernetes.io/is-default-class: "true"
+   labels:
+     kubernetes.io/cluster-service: "true"
+provisioner: kubernetes.io/rbd
+parameters:
+  monitors: 10.0.77.17:6789
+  adminId: admin
+  adminSecretName: ceph-secret
+  adminSecretNamespace: default
+  pool: k8s
+  userId: admin
+  userSecretName: ceph-secret
+  fsType: ext4
+  imageFormat: "2"
+  imageFeatures: "layering"  
