@@ -9,12 +9,6 @@
 
 ### HA Planning
 
-<style>
-table th:first-of-type {
-    width: 140px;
-}
-</style>
-
 | Role | IP | Components |
 | :-: | :-: | :-: |
 | cp-172-31-16-11 | 172.31.16.11 | etcd, apiserver, controller, scheduler |
