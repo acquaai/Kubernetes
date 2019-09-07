@@ -60,7 +60,6 @@ network:
             - eno2
             nameservers:
                 addresses:
-                - 114.114.114.114
                 - 8.8.8.8
             parameters:
                 mode: balance-rr
@@ -425,12 +424,19 @@ w-172-31-16-14 ansible_host=172.31.16.14 ansible_user=k8s
           [Service]
           Environment="HTTP_PROXY=http://10.30.1.99:1080"
           Environment="HTTPS_PROXY=http://10.30.1.99:1080"
-          Environment="NO_PROXY=localhost,127.0.0.1,172.31.18.12"
+          Environment="NO_PROXY=localhost,127.0.0.1,172.31.16.10"
         force: yes
       tags:
       - proxy
 
-    - name: recreate resolv.conf symlink
+    - name: Remove symlink
+      file:
+        path: /etc/resolv.conf
+        state: absent
+      tags:
+      - noproxy  
+
+    - name: recreate symlink resolv.conf
       file:
         src: /run/systemd/resolve/resolv.conf
         dest: /etc/resolv.conf
@@ -438,18 +444,17 @@ w-172-31-16-14 ansible_host=172.31.16.14 ansible_user=k8s
         group: root
         state: link
         mode: '1777'
-        force: ye
-      tags:
-      - noproxy
-    
-    - name: Configure Pod DNS
-      copy:
-        dest: /etc/resolv.conf
-        content: |
-          nameserver 10.0.77.78
         force: yes
       tags:
-      - noproxy  
+      - noproxy        
+
+    - name: Configure Pod DNS
+      replace:
+        path: /etc/resolv.conf
+        regexp: '^(nameserver\s+.*)$'
+        replace: 'nameserver 10.0.77.78'
+      tags:
+      - noproxy
     
     - name: restart docker
       systemd:
@@ -468,7 +473,7 @@ w-172-31-16-14 ansible_host=172.31.16.14 ansible_user=k8s
       - noproxy
 ```
 
-+ "insecure-registries": [172.31.18.12],
++ "insecure-registries": [172.31.16.10],
 + "dns": ["114.114.114.114"],
 + "dns-opts": ["ndots:5","timeout:2","attempts:2"],
 + "dns-search": ["default.svc.cluster.local","svc.cluster.local","cluster.local"]
