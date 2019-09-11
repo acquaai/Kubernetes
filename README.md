@@ -404,7 +404,7 @@ w-172-31-16-14 ansible_host=172.31.16.14 ansible_user=k8s
             "max-size": "100m"
             },
             "storage-driver": "overlay2",
-            "registry-mirrors": ["https://registry.cn-hangzhou.aliyuncs.com"]
+            "registry-mirrors": ["https://registry.xxx.com"]
           }
         force: yes
       tags:
@@ -424,7 +424,7 @@ w-172-31-16-14 ansible_host=172.31.16.14 ansible_user=k8s
           [Service]
           Environment="HTTP_PROXY=http://10.30.1.99:1080"
           Environment="HTTPS_PROXY=http://10.30.1.99:1080"
-          Environment="NO_PROXY=localhost,127.0.0.1,172.31.16.10"
+          Environment="NO_PROXY=127.0.0.1,localhost,registry.xxx.com"
         force: yes
       tags:
       - proxy
@@ -452,7 +452,7 @@ w-172-31-16-14 ansible_host=172.31.16.14 ansible_user=k8s
       replace:
         path: /etc/resolv.conf
         regexp: '^(nameserver\s+.*)$'
-        replace: 'nameserver 10.0.77.78'
+        replace: 'nameserver 10.0.77.73'
       tags:
       - noproxy
     
@@ -473,9 +473,9 @@ w-172-31-16-14 ansible_host=172.31.16.14 ansible_user=k8s
       - noproxy
 ```
 
-+ "insecure-registries": [172.31.16.10],
-+ "dns": ["114.114.114.114"],
-+ "dns-opts": ["ndots:5","timeout:2","attempts:2"],
++ "insecure-registries": [""]
++ "dns": [""]
++ "dns-opts": ["ndots:5","timeout:2","attempts:2"]
 + "dns-search": ["default.svc.cluster.local","svc.cluster.local","cluster.local"]
 
 ```zsh
@@ -662,7 +662,7 @@ Kubeadm initial need to access google resources, you will see: **could not fetch
         block: |
           export http_proxy='http://10.30.1.99:1080'
           export https_proxy=$http_proxy
-          export no_proxy='127.0.0.1, localhost, 172.31.16.11'
+          export no_proxy='127.0.0.1,localhost,registry.x.com'
         backup: yes
 
     - name: enable proxy
